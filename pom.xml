@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>org.krroks</groupId>
 	<artifactId>offsets</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<name>autooffsets</name>
 	<description>Get Last Offsets automatically</description>
 	<properties>
