@@ -17,6 +17,7 @@ Optionally, fill `app.github.token` in `application.properties` with your GitHub
 ## Usage
 
 Run the application and go to `http://localhost:8080/offsets` to see the list of offsets.
+Go to `http://localhost:8080/offsets/version` to get the offsets of a specific patch.
 
 <img src="https://i.gyazo.com/0a8ee4cba3accf33999b060ee5f0d402.png">
 
