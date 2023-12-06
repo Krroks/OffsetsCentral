@@ -9,6 +9,9 @@ import java.io.IOException;
 public class HexIntSerializer extends JsonSerializer<Integer> {
     @Override
     public void serialize(Integer value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeString("0x" + Integer.toHexString(value));
+        if (value == 0)
+            gen.writeNull();
+        else
+            gen.writeString("0x" + Integer.toHexString(value));
     }
 }

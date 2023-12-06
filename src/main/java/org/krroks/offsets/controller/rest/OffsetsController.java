@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
@@ -29,6 +30,29 @@ public class OffsetsController {
             List<Offsets> offsetsList = new ArrayList<>();
             for (OffsetRepository offsetRepository : offsetRepositoryService.getOffsetRepositories()) {
                 offsetsList.add(gitHubService.getLastOffsets(offsetRepository));
+            }
+            offsetsList.sort((o1, o2) -> o1.getVersion().compareTo(o2.getVersion()));
+            Offsets offsets = new Offsets();
+            for (Offsets offsets1 : offsetsList) {
+                offsets.putAll(offsets1);
+            }
+
+            return ResponseEntity.ok(offsets);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/offsets/{version}")
+    @ResponseBody()
+    public ResponseEntity<Offsets> offsetsFromVersion(@PathVariable String version) {
+        try {
+            List<Offsets> offsetsList = new ArrayList<>();
+            for (OffsetRepository offsetRepository : offsetRepositoryService.getOffsetRepositories()) {
+                Offsets offsets = gitHubService.getOffsetsFromVersion(offsetRepository, version);
+                if (offsets != null)
+                    offsetsList.add(offsets);
             }
             offsetsList.sort((o1, o2) -> o1.getVersion().compareTo(o2.getVersion()));
             Offsets offsets = new Offsets();

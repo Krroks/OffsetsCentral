@@ -67,6 +67,9 @@ public class OffsetReaderService {
     }
 
     public Offsets getOffsetsFromIni(String content, OffsetRepository offsetRepository) {
+        return getOffsetsFromIni(content, offsetRepository, null);
+    }
+    public Offsets getOffsetsFromIni(String content, OffsetRepository offsetRepository, String targetVersion) {
         Offsets offsets = new Offsets();
         String scriptVersion = "";
         try {
@@ -75,8 +78,15 @@ public class OffsetReaderService {
 
             if (offsetRepository.getVersionMap().contains("/")){
                 String[] versionFields = offsetRepository.getVersionMap().split("/");
-                scriptVersion = ini.get(versionFields[0], versionFields[1]);
-                offsets.setVersion(scriptVersion);
+                scriptVersion = ini.get(versionFields[0], versionFields[1]).replace("'", "");
+                if (targetVersion == null){
+                    offsets.setVersion(scriptVersion);
+                }else if (scriptVersion.contains(targetVersion)){
+                    offsets.setVersion(scriptVersion);
+                }else{
+                    return null;
+                }
+
 
                 OffsetsMap offsetsMap = offsetRepository.getOffsetsMap();
                 for (Map.Entry<String, String> entry : offsetsMap.entrySet()) {

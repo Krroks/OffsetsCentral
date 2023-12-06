@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -25,22 +22,32 @@ public class GitHubService {
     @Value("${app.github.token}")
     private String githubToken;
 
-    public Offsets getLastOffsets(OffsetRepository offsetRepository) throws IOException {
-
+    public GitHub getGithub() throws IOException {
         GitHub github = null;
         if (githubToken.isEmpty())
             github = new GitHubBuilder().build();
         else
             github = new GitHubBuilder().withOAuthToken(githubToken).build();
+        return github;
+    }
 
-        GHRepository repository = github.getRepository(offsetRepository.getRepoOwner() + "/" + offsetRepository.getRepoName());
+    public GHRepository getRepository(String repoOwner, String repoName) throws IOException {
+        GitHub github = getGithub();
+        return github.getRepository(repoOwner + "/" + repoName);
+    }
 
-        List<GHContent> contentMap =  repository.getDirectoryContent(offsetRepository.getRepoOffsetsPath());
-        log.info(offsetRepository.toString());
+
+
+    public Offsets getLastOffsets(OffsetRepository offsetRepository) throws IOException {
+
+        GHRepository repository = getRepository(offsetRepository.getRepoOwner(), offsetRepository.getRepoName());
 
         GHContent previousFile = null;
         GHContent content = null;
         if (offsetRepository.getRepoFileName().isEmpty()) {
+            List<GHContent> contentMap =  repository.getDirectoryContent(offsetRepository.getRepoOffsetsPath());
+            log.info(offsetRepository.toString());
+
             for (GHContent entry : contentMap) {
                 if (previousFile != null) {
                     if (compareVersions(previousFile.getName(), entry.getName()) < 0) {
@@ -54,10 +61,6 @@ public class GitHubService {
         }else {
             content = repository.getFileContent(offsetRepository.getRepoOffsetsPath() + "/" + offsetRepository.getRepoFileName());
         }
-        log.debug("File Content: " + content.getContent());
-        log.info(offsetRepository.getOffsetsMap().toString());
-
-        log.info(content.getName());
 
         if (content.getName().endsWith(".json"))
             return offsetReaderService.getOffsets(content.getContent(), offsetRepository, getVersionFromFileName(content.getName()));
@@ -65,6 +68,52 @@ public class GitHubService {
             return offsetReaderService.getOffsetsFromIni(content.getContent(), offsetRepository);
 
         log.error("File extension not supported");
+        return null;
+    }
+
+    public Offsets getOffsetsFromVersion(OffsetRepository offsetRepository, String targetVersion) throws IOException {
+        GHRepository repository = getRepository(offsetRepository.getRepoOwner(), offsetRepository.getRepoName());
+
+        GHContent previousFile = null;
+        GHContent content = null;
+
+        if (offsetRepository.getRepoFileName().isEmpty()) {
+            List<GHContent> contentMap =  repository.getDirectoryContent(offsetRepository.getRepoOffsetsPath());
+            log.info(offsetRepository.toString());
+            List<GHContent> entriesWithTargetVersion = new ArrayList<>();
+            for (GHContent entry : contentMap) {
+                if (entry.getName().contains(targetVersion)) {
+                    entriesWithTargetVersion.add(entry);
+                }
+            }
+            if (entriesWithTargetVersion.isEmpty())
+                return null;
+            else
+            {
+                for (GHContent entry : entriesWithTargetVersion) {
+                    if (previousFile != null) {
+                        if (compareVersions(previousFile.getName(), entry.getName()) < 0) {
+                            previousFile = entry;
+                        }
+                    }else {
+                        previousFile = entry;
+                    }
+                }
+                content = repository.getFileContent(offsetRepository.getRepoOffsetsPath() + "/" + previousFile.getName());
+            }
+            if (content.getName().endsWith(".json"))
+                return offsetReaderService.getOffsets(content.getContent(), offsetRepository, getVersionFromFileName(content.getName()));
+            else if (content.getName().endsWith(".ini"))
+                return offsetReaderService.getOffsetsFromIni(content.getContent(), offsetRepository);
+        }else{
+            content = repository.getFileContent(offsetRepository.getRepoOffsetsPath() + "/" + offsetRepository.getRepoFileName());
+
+            if (content.getName().endsWith(".ini")){
+                return offsetReaderService.getOffsetsFromIni(content.getContent(), offsetRepository, targetVersion);
+
+            }
+
+        }
         return null;
     }
 
